@@ -9,6 +9,11 @@ const featured = decks[0];
 const rest = decks.slice(1);
 const groups = groupByYear(rest);
 const total = decks.length;
+
+// Cross-link to knowledge-docs-site. Only rendered when the env var is
+// set so local dev (which usually doesn't have docs-site running) stays
+// clean; the CI workflow sets it to the deployed prod URL.
+const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 ---
 
 <Base
@@ -23,6 +28,11 @@ const total = decks.length;
       관심사는 주로 DBMS 내부 — 동시성 제어, MVCC, 복구, 스토리지 엔진 — 와
       그 주변의 시스템 소프트웨어입니다.
     </p>
+    {docsSiteUrl && (
+      <p class="masthead__crosslink">
+        장문 분석서는 <a href={docsSiteUrl} target="_blank" rel="noopener">Notes &amp; Analyses ↗</a>
+      </p>
+    )}
   </header>
 
   {total === 0 ? (
@@ -94,6 +104,26 @@ const total = decks.length;
     color: var(--ink-soft);
     max-width: 56ch;
     margin: 0;
+  }
+
+  .masthead__crosslink {
+    margin: 18px 0 0;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+  }
+
+  .masthead__crosslink a {
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+    text-underline-offset: 3px;
+  }
+
+  .masthead__crosslink a:hover {
+    text-decoration-color: var(--accent);
   }
 
   .empty {

@@ -46,6 +46,9 @@ jobs:
           SITE_BASE: /knowledge-slides-site
           SITE_URL: https://hgryoo.dev/knowledge-slides-site
           SLIDES_REPO: ${{ github.workspace }}/knowledge-slides
+          # Cross-link back to the docs site on the deployed build.
+          # Unset locally so dev landing stays minimal.
+          DOCS_SITE_URL: https://hgryoo.dev/knowledge-docs-site/
         run: npm run build
 
       - name: Upload artifact
