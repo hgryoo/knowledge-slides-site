@@ -3,8 +3,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DECKS_ROOT = path.resolve(here, '../../../knowledge-slides/decks');
-const DIST_ROOT = path.resolve(here, '../../../knowledge-slides/dist');
+
+// SLIDES_REPO is the knowledge-slides checkout root; CI sets it to
+// $GITHUB_WORKSPACE/knowledge-slides, locally we use the sibling clone.
+const SLIDES_REPO =
+  process.env.SLIDES_REPO ?? path.resolve(here, '../../../knowledge-slides');
+const DECKS_ROOT = path.join(SLIDES_REPO, 'decks');
+const DIST_ROOT = path.join(SLIDES_REPO, 'dist');
 
 export type DeckKind = 'talks' | 'notes' | 'reading' | 'other';
 export type LangCode = 'en' | 'ko';
@@ -53,6 +58,11 @@ function distExists(file: string): boolean {
   }
 }
 
+// Deck asset URLs are emitted as RELATIVE paths (no leading slash) so
+// they resolve correctly whether the site is mounted at root (dev) or
+// under /knowledge-slides-site/ (prod). The browser resolves them
+// against the page URL, which always ends with a trailing slash on
+// Starlight-style Astro routes.
 function detectLang(slug: string, lang: LangCode): LangAssets | null {
   const srcPath = path.join(DECKS_ROOT, slug, lang, 'slides.md');
   if (!fs.existsSync(srcPath)) return null;
@@ -64,9 +74,9 @@ function detectLang(slug: string, lang: LangCode): LangAssets | null {
   return {
     lang,
     label: LANG_LABEL[lang],
-    html: distExists(html) ? `/decks/${html}` : undefined,
-    pdf: distExists(pdf) ? `/decks/${pdf}` : undefined,
-    thumbnail: distExists(thumb) ? `/decks/${thumb}` : undefined,
+    html: distExists(html) ? `decks/${html}` : undefined,
+    pdf: distExists(pdf) ? `decks/${pdf}` : undefined,
+    thumbnail: distExists(thumb) ? `decks/${thumb}` : undefined,
   };
 }
 

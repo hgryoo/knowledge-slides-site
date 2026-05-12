@@ -1,0 +1,65 @@
+name: Deploy knowledge-slides-site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [knowledge-slides-push]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout site repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout knowledge-slides (private)
+        uses: actions/checkout@v4
+        with:
+          repository: hgryoo/knowledge-slides
+          path: knowledge-slides
+          fetch-depth: 0
+          # PAT with Contents: Read on hgryoo/knowledge-slides.
+          token: ${{ secrets.KNOWLEDGE_SLIDES_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Build site
+        env:
+          SITE_BASE: /knowledge-slides-site
+          SITE_URL: https://hgryoo.dev/knowledge-slides-site
+          SLIDES_REPO: ${{ github.workspace }}/knowledge-slides
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

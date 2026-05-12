@@ -4,11 +4,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "bash prebuild.sh",
+    "predev": "bash prebuild.sh",
+    "prestart": "bash prebuild.sh",
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "refresh": "bash prebuild.sh"
   },
   "dependencies": {
     "astro": "^5.0.0"

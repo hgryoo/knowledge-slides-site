@@ -8,11 +8,7 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
-if [ -L public/decks ] || [ -d public/decks ]; then
-  echo "==> public/decks already exists"
-else
-  echo "==> linking public/decks -> ../knowledge-slides/dist"
-  ln -s ../../knowledge-slides/dist public/decks
-fi
+echo "==> prebuild (link public/decks)"
+bash prebuild.sh
 
 echo "==> done. run:  npm run dev"
