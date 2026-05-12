@@ -64,8 +64,13 @@ function distExists(file: string): boolean {
 // against the page URL, which always ends with a trailing slash on
 // Starlight-style Astro routes.
 function detectLang(slug: string, lang: LangCode): LangAssets | null {
-  const srcPath = path.join(DECKS_ROOT, slug, lang, 'slides.md');
-  if (!fs.existsSync(srcPath)) return null;
+  // A language is "present" if the `<lang>/` sub-folder exists. Historically
+  // we checked for `<lang>/slides.md` (the Marp source) but pdf/pptx-source
+  // decks have no slides.md — only an outline.md and the authoritative file
+  // under `assets/orig/`. The lang dir is the common marker across all
+  // source_format values.
+  const langDir = path.join(DECKS_ROOT, slug, lang);
+  if (!fs.existsSync(langDir)) return null;
 
   const html = `${slug}.${lang}.html`;
   const pdf = `${slug}.${lang}.pdf`;
