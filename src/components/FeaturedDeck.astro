@@ -1,0 +1,263 @@
+---
+import type { DeckMetadata } from '../lib/decks';
+import { monthLabel } from '../lib/decks';
+
+interface Props {
+  deck: DeckMetadata;
+}
+
+const { deck } = Astro.props;
+const month = monthLabel(deck.date);
+const dateLabel = deck.date && month ? `${month} ${deck.date.slice(0, 4)}` : deck.date;
+---
+
+<article class={`featured${deck.available ? '' : ' featured--missing'}`}>
+  <a class="featured__cover" href={deck.primaryUrl ?? '#'}>
+    {deck.primaryThumbnail ? (
+      <img src={deck.primaryThumbnail} alt={`${deck.title} first slide`} loading="lazy" />
+    ) : (
+      <span class="featured__cover-fallback">
+        {deck.title.slice(0, 1)}
+      </span>
+    )}
+  </a>
+
+  <div class="featured__body">
+    {dateLabel && <p class="featured__date">{dateLabel}</p>}
+    <h2 class="featured__title">
+      {deck.primaryUrl ? (
+        <a href={deck.primaryUrl}>{deck.title}</a>
+      ) : (
+        <span>{deck.title}</span>
+      )}
+    </h2>
+    {deck.subtitle && <p class="featured__subtitle">{deck.subtitle}</p>}
+    {deck.summary && <p class="featured__summary">{deck.summary}</p>}
+
+    <div class="featured__meta">
+      {deck.tags && deck.tags.length > 0 && (
+        <span class="featured__tags">
+          {deck.tags.map((tag, i) => (
+            <>
+              {i > 0 && ', '}
+              <span>{tag}</span>
+            </>
+          ))}
+        </span>
+      )}
+      <span class="featured__langs">
+        {deck.languages.map((l, i) => (
+          <>
+            {i > 0 && <span class="featured__sep">·</span>}
+            <span class="featured__lang">
+              <span class="featured__lang-label">{l.label}</span>
+              {l.html ? <a href={l.html}>html</a> : <span class="featured__muted">html</span>}
+              {l.pdf && (
+                <>
+                  <span class="featured__dot">·</span>
+                  <a href={l.pdf} target="_blank" rel="noopener">pdf</a>
+                </>
+              )}
+            </span>
+          </>
+        ))}
+      </span>
+    </div>
+  </div>
+</article>
+
+<style>
+  .featured {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 36px;
+    padding: 36px;
+    margin-bottom: 64px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    box-shadow:
+      0 1px 0 rgba(20, 18, 14, 0.04),
+      0 14px 40px -28px rgba(20, 18, 14, 0.35);
+    position: relative;
+  }
+
+  .featured::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 36px;
+    right: 36px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .featured--missing {
+    opacity: 0.6;
+  }
+
+  .featured__cover {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #efece4;
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 6px 18px -10px rgba(20, 18, 14, 0.3);
+    text-decoration: none;
+  }
+
+  .featured__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+
+  .featured__cover:hover img {
+    transform: scale(1.02);
+  }
+
+  .featured__cover-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 92px;
+    color: var(--muted-soft);
+  }
+
+  .featured__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .featured__date {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 0 0 10px;
+  }
+
+  .featured__title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 34px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+
+  .featured__title a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .featured__title a:hover {
+    color: var(--accent);
+  }
+
+  .featured__subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+
+  .featured__summary {
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .featured__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: auto;
+  }
+
+  .featured__tags span {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .featured__langs {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .featured__lang {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .featured__lang-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: rgba(168, 51, 42, 0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .featured__lang a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+    text-underline-offset: 2px;
+  }
+
+  .featured__lang a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  .featured__muted {
+    color: var(--muted-soft);
+    text-decoration: line-through;
+    text-decoration-color: var(--muted-soft);
+  }
+
+  .featured__sep {
+    color: var(--muted-soft);
+    margin: 0 2px;
+  }
+
+  .featured__dot {
+    color: var(--muted-soft);
+  }
+
+  @media (max-width: 720px) {
+    .featured {
+      grid-template-columns: 1fr;
+      gap: 24px;
+      padding: 24px;
+    }
+    .featured::before {
+      left: 24px;
+      right: 24px;
+    }
+    .featured__title {
+      font-size: 28px;
+    }
+  }
+</style>

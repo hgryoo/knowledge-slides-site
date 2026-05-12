@@ -1,0 +1,155 @@
+---
+import Base from '../layouts/Base.astro';
+import FeaturedDeck from '../components/FeaturedDeck.astro';
+import DeckRow from '../components/DeckRow.astro';
+import { loadDecks, groupByYear } from '../lib/decks';
+
+const decks = loadDecks();
+const featured = decks[0];
+const rest = decks.slice(1);
+const groups = groupByYear(rest);
+const total = decks.length;
+---
+
+<Base
+  title="Hyunggyu Ryoo — Talks & Notes"
+  description="발표 자료, 코드 분석, 읽은 책 / 논문에 대한 노트 모음."
+>
+  <header class="masthead">
+    <h1 class="masthead__name">Hyunggyu Ryoo</h1>
+    <p class="masthead__role"><em>Talks &amp; Notes</em></p>
+    <p class="masthead__lede">
+      발표 자료, 코드 분석, 읽은 책과 논문에 대한 메모를 모아둡니다.
+      관심사는 주로 DBMS 내부 — 동시성 제어, MVCC, 복구, 스토리지 엔진 — 와
+      그 주변의 시스템 소프트웨어입니다.
+    </p>
+  </header>
+
+  {total === 0 ? (
+    <p class="empty">
+      등록된 자료가 없습니다. <code>knowledge-slides/decks/&lt;slug&gt;/metadata.json</code>을 추가하세요.
+    </p>
+  ) : (
+    <>
+      {featured && (
+        <section class="block">
+          <h2 class="block__heading">
+            <span class="block__rule" aria-hidden="true"></span>
+            <span class="block__label">Featured</span>
+          </h2>
+          <FeaturedDeck deck={featured} />
+        </section>
+      )}
+
+      {rest.length > 0 && (
+        <section class="archive">
+          {groups.map((group) => (
+            <section class="year">
+              <h2 class="block__heading">
+                <span class="block__rule" aria-hidden="true"></span>
+                <span class="block__label">{group.year}</span>
+              </h2>
+              <div class="year__list">
+                {group.decks.map((deck) => (
+                  <DeckRow deck={deck} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </section>
+      )}
+    </>
+  )}
+</Base>
+
+<style>
+  .masthead {
+    margin-bottom: 64px;
+  }
+
+  .masthead__name {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 60px;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+
+  .masthead__role {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--muted);
+    margin: 0 0 28px;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead__role em {
+    font-style: italic;
+  }
+
+  .masthead__lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0;
+  }
+
+  .empty {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 32px 0;
+    text-align: center;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 15px;
+  }
+
+  .empty code {
+    background: rgba(168, 51, 42, 0.08);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  .block {
+    margin-bottom: 48px;
+  }
+
+  .block__heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 12px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .block__rule {
+    width: 22px;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  .year {
+    margin-bottom: 48px;
+  }
+
+  @media (max-width: 640px) {
+    .masthead__name {
+      font-size: 44px;
+    }
+    .masthead__role {
+      font-size: 19px;
+    }
+    .masthead {
+      margin-bottom: 48px;
+    }
+  }
+</style>

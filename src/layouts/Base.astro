@@ -1,0 +1,131 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <style is:global>
+      :root {
+        --paper: #f7f5f0;
+        --ink: #1a1a1a;
+        --ink-soft: #2a2a2a;
+        --muted: #777370;
+        --muted-soft: #b8b3ac;
+        --rule: #d9d4cc;
+        --accent: #a8332a;
+
+        --font-serif:
+          "Fraunces", "Source Serif Pro", "Noto Serif KR", Georgia,
+          "Times New Roman", serif;
+        --font-sans:
+          "Pretendard Variable", "Inter", -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+        --font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+          monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 17px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-color: var(--muted-soft);
+        text-underline-offset: 3px;
+        transition: text-decoration-color 0.15s ease, color 0.15s ease;
+      }
+
+      a:hover {
+        text-decoration-color: var(--accent);
+        color: var(--accent);
+      }
+
+      code,
+      pre {
+        font-family: var(--font-mono);
+        font-size: 0.92em;
+      }
+
+      ::selection {
+        background: var(--accent);
+        color: var(--paper);
+      }
+
+      .page {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 88px 28px 96px;
+      }
+
+      .site-footer {
+        margin-top: 96px;
+        padding-top: 28px;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 13px;
+        font-family: var(--font-sans);
+      }
+
+      .site-footer p {
+        margin: 0;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          font-size: 16px;
+        }
+        .page {
+          padding: 56px 20px 72px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <slot />
+      <footer class="site-footer">
+        <p>© 2026 Hyunggyu Ryoo. Built with Astro.</p>
+      </footer>
+    </main>
+  </body>
+</html>
