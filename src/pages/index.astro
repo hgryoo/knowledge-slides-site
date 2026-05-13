@@ -353,15 +353,17 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
   .group.is-hidden,
   .group.is-empty { display: none; }
 
-  /* Drafts visibility rule.
-   *   default              : drafts and published BOTH visible; drafts
-   *                          carry a `[draft]` chip-marker so the
-   *                          reader can tell them apart at a glance
-   *   .is-draft-mode (on)  : hide non-draft rows (drafts-only filter)
+  /* Drafts visibility rule. Parent-scoped so the `.row` element's own
+   * `display:` (grid at narrow, flex/column at wide) flows through
+   * unchanged when the row IS allowed to render.
    *
-   * Drafts are inlined into the same Talks / Reading groups as
-   * published decks; the kind chip and the draft chip then compose
-   * naturally — e.g. "reading + draft" = drafts in the reading group. */
+   *   default                       : hide draft rows
+   *   .archive.is-draft-mode (on)   : hide non-draft rows
+   *
+   * Drafts are inlined into the same Talks / Reading groups so the
+   * kind chip and the draft chip compose by intersection — e.g.
+   * "reading + draft" yields drafts in the reading group. */
+  .archive:not(.is-draft-mode) :global(.row--draft) { display: none; }
   .archive.is-draft-mode :global(.row:not(.row--draft)) { display: none; }
 
   @media (max-width: 640px) {
