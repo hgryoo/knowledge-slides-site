@@ -356,7 +356,12 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 
 <script>
   // Two filter dimensions in one chip surface:
-  //   - data-kind chips (kind + drafts): toggle group sections via .is-hidden
+  //   - data-kind chips (kind + drafts): toggle group sections via .is-hidden.
+  //     Kind chips are additive among themselves; Drafts is a separate axis
+  //     and toggles a *drafts-only view* — activating Drafts hides every
+  //     kind group and shows only the drafts group; deactivating restores
+  //     the kind groups according to their individual chip states. Clicking
+  //     any kind chip while Drafts is active automatically exits Drafts mode.
   //   - data-topic chips: toggle individual rows via .is-topic-hidden, then
   //     mark the parent group .is-empty if every row in it ended up hidden.
   const archive = document.querySelector<HTMLElement>('.archive');
@@ -381,23 +386,56 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
       });
     };
 
+    const draftChip = archive.querySelector<HTMLButtonElement>(
+      '.archive__chip[data-kind="draft"]',
+    );
+
+    const applyVisibility = () => {
+      const draftsMode = draftChip?.classList.contains('is-active') ?? false;
+      archive.querySelectorAll<HTMLElement>('.group').forEach((g) => {
+        const k = g.dataset.kind;
+        if (!k) return;
+        if (draftsMode) {
+          g.classList.toggle('is-hidden', k !== 'draft');
+        } else if (k === 'draft') {
+          g.classList.add('is-hidden');
+        } else {
+          const c = archive.querySelector<HTMLButtonElement>(
+            `.archive__chip[data-kind="${k}"]`,
+          );
+          const active = c?.classList.contains('is-active') ?? true;
+          g.classList.toggle('is-hidden', !active);
+        }
+      });
+    };
+
     archive
       .querySelectorAll<HTMLButtonElement>('.archive__chip')
       .forEach((chip) => {
         chip.addEventListener('click', () => {
+          if (chip.classList.contains('archive__chip--topic')) {
+            const active = !chip.classList.contains('is-active');
+            chip.classList.toggle('is-active', active);
+            chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+            applyTopicFilter();
+            return;
+          }
+
+          const kind = chip.dataset.kind;
+          if (!kind) return;
+
           const active = !chip.classList.contains('is-active');
           chip.classList.toggle('is-active', active);
           chip.setAttribute('aria-pressed', active ? 'true' : 'false');
 
-          if (chip.classList.contains('archive__chip--topic')) {
-            applyTopicFilter();
-            return;
+          // Drafts is mutually exclusive with kind chips. Clicking a kind
+          // chip while Drafts mode is on automatically exits Drafts mode.
+          if (kind !== 'draft' && draftChip?.classList.contains('is-active')) {
+            draftChip.classList.remove('is-active');
+            draftChip.setAttribute('aria-pressed', 'false');
           }
-          const kind = chip.dataset.kind;
-          if (!kind) return;
-          archive
-            .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
-            .forEach((g) => g.classList.toggle('is-hidden', !active));
+
+          applyVisibility();
         });
       });
   }
