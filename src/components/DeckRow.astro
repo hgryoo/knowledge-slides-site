@@ -15,7 +15,10 @@ const year = deck.date?.slice(0, 4);
 const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month;
 ---
 
-<article class={`row${deck.available ? '' : ' row--missing'}${showYear ? ' row--with-year' : ''}`}>
+<article
+  class={`row${deck.available ? '' : ' row--missing'}${showYear ? ' row--with-year' : ''}`}
+  data-topics={deck.topics.join(' ')}
+>
   <div class="row__month">{dateLabel}</div>
 
   <a class="row__thumb" href={deck.primaryUrl ?? '#'} aria-hidden={deck.primaryThumbnail ? undefined : 'true'}>

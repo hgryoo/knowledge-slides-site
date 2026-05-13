@@ -34,6 +34,9 @@ export type DeckMetadata = {
   author?: string;
   summary?: string;
   tags?: string[];
+  /** Curated semantic categories used for the topic filter row.
+   *  Distinct from `tags` (free-form keywords). */
+  topics: string[];
   kind?: DeckKind;
   source?: Record<string, unknown>;
   languages: LangAssets[];
@@ -47,6 +50,33 @@ export type DeckMetadata = {
    *  featured selection; surfaced only in the "Drafts" pane. */
   draft: boolean;
 };
+
+export type TopicEntry = { topic: string; label: string; count: number };
+
+// Curated topic order + display labels. Topics outside this list still
+// work (they fall through to the unknown-topic path in collectTopics)
+// but the chip row puts known topics in this canonical order first.
+const TOPIC_ORDER: string[] = [
+  'cubrid-internals',
+  'vector-search',
+  'spatial-3d',
+  'open-source',
+  'paper-review',
+];
+const TOPIC_LABEL: Record<string, string> = {
+  'cubrid-internals': 'CUBRID internals',
+  'vector-search': 'Vector search',
+  'spatial-3d': 'Spatial / 3D',
+  'open-source': 'Open source',
+  'paper-review': 'Paper review',
+};
+
+function topicLabel(topic: string): string {
+  return (
+    TOPIC_LABEL[topic] ??
+    topic.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
 
 export type DeckYearGroup = {
   year: string;
@@ -116,7 +146,11 @@ export function loadDecks(): DeckMetadata[] {
     const metaPath = path.join(DECKS_ROOT, slug, 'metadata.json');
     if (!fs.existsSync(metaPath)) continue;
 
-    let raw: Partial<DeckMetadata> & { hidden?: boolean; draft?: boolean };
+    let raw: Partial<DeckMetadata> & {
+      hidden?: boolean;
+      draft?: boolean;
+      topics?: string[];
+    };
     try {
       raw = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
     } catch (err) {
@@ -146,6 +180,7 @@ export function loadDecks(): DeckMetadata[] {
       author: raw.author,
       summary: raw.summary,
       tags: raw.tags ?? [],
+      topics: Array.isArray(raw.topics) ? raw.topics : [],
       kind: raw.kind ?? 'talks',
       source: raw.source as Record<string, unknown> | undefined,
       languages,
@@ -170,6 +205,30 @@ export function groupByYear(decks: DeckMetadata[]): DeckYearGroup[] {
   return [...buckets.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([year, decks]) => ({ year, decks }));
+}
+
+// Collect every topic that appears across the given decks, ordered by
+// the canonical TOPIC_ORDER first, then alphabetically for any topic
+// values not in the predefined list (so future ad-hoc topics still get
+// surfaced, just at the end).
+export function collectTopics(decks: DeckMetadata[]): TopicEntry[] {
+  const counts = new Map<string, number>();
+  for (const deck of decks) {
+    for (const t of deck.topics) {
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+  }
+  const ordered: string[] = [];
+  for (const t of TOPIC_ORDER) if (counts.has(t)) ordered.push(t);
+  const extras = [...counts.keys()]
+    .filter((t) => !TOPIC_ORDER.includes(t))
+    .sort();
+  ordered.push(...extras);
+  return ordered.map((topic) => ({
+    topic,
+    label: topicLabel(topic),
+    count: counts.get(topic) ?? 0,
+  }));
 }
 
 // Fixed kind order (talks → notes → reading → other) keeps the "By kind"

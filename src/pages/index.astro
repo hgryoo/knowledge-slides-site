@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import FeaturedDeck from '../components/FeaturedDeck.astro';
 import DeckRow from '../components/DeckRow.astro';
-import { loadDecks, groupByKind } from '../lib/decks';
+import { loadDecks, groupByKind, collectTopics } from '../lib/decks';
 
 const decks = loadDecks();
 const published = decks.filter((d) => !d.draft);
@@ -10,6 +10,7 @@ const drafts = decks.filter((d) => d.draft);
 const featured = published[0];
 const rest = published.slice(1);
 const kindGroups = groupByKind(rest);
+const topicEntries = collectTopics([...rest, ...drafts]);
 const total = published.length + drafts.length;
 
 // Cross-link to knowledge-docs-site. Only rendered when the env var is
@@ -55,7 +56,7 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 
       {(rest.length > 0 || drafts.length > 0) && (
         <section class="archive">
-          <div class="archive__chips" role="group" aria-label="Filter">
+          <div class="archive__chips" role="group" aria-label="Filter by kind">
             {kindGroups.map((group) => (
               <button
                 type="button"
@@ -72,6 +73,19 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
               aria-pressed="false"
             >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
           </div>
+
+          {topicEntries.length > 0 && (
+            <div class="archive__chips archive__chips--topics" role="group" aria-label="Filter by topic">
+              {topicEntries.map((t) => (
+                <button
+                  type="button"
+                  class="archive__chip archive__chip--topic"
+                  data-topic={t.topic}
+                  aria-pressed="false"
+                >#{t.topic}<span class="archive__chip-count">{t.count}</span></button>
+              ))}
+            </div>
+          )}
 
           {kindGroups.map((group) => (
             <section class="group" data-kind={group.kind}>
@@ -290,7 +304,39 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     font-family: var(--font-sans);
   }
 
-  .group.is-hidden { display: none; }
+  /* Topic chips are a separate filter dimension, default-OFF.
+   * Smaller + monospace to read as a tag rather than a category button. */
+  .archive__chips--topics {
+    margin-top: -22px;
+    margin-bottom: 36px;
+  }
+
+  .archive__chip--topic {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+
+  .archive__chip--topic::before {
+    content: none !important;
+  }
+
+  .archive__chip--topic.is-active {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .archive__chip--topic.is-active .archive__chip-count {
+    background: var(--accent);
+    color: var(--paper);
+  }
+
+  .row.is-topic-hidden { display: none; }
+  .group.is-hidden,
+  .group.is-empty { display: none; }
 
   @media (max-width: 640px) {
     .masthead__name {
@@ -306,23 +352,50 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 </style>
 
 <script>
-  // Each chip mirrors visibility of its matching .group[data-kind=...].
-  // Drafts is just another data-kind value ("draft") that happens to
-  // start in the off state.
+  // Two filter dimensions in one chip surface:
+  //   - data-kind chips (kind + drafts): toggle group sections via .is-hidden
+  //   - data-topic chips: toggle individual rows via .is-topic-hidden, then
+  //     mark the parent group .is-empty if every row in it ended up hidden.
   const archive = document.querySelector<HTMLElement>('.archive');
   if (archive) {
-    const chips = archive.querySelectorAll<HTMLButtonElement>('.archive__chip');
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        const kind = chip.dataset.kind;
-        if (!kind) return;
-        const active = !chip.classList.contains('is-active');
-        chip.classList.toggle('is-active', active);
-        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
-        archive
-          .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
-          .forEach((g) => g.classList.toggle('is-hidden', !active));
+    const applyTopicFilter = () => {
+      const selected = new Set<string>();
+      archive
+        .querySelectorAll<HTMLButtonElement>('.archive__chip--topic.is-active')
+        .forEach((c) => {
+          if (c.dataset.topic) selected.add(c.dataset.topic);
+        });
+      archive.querySelectorAll<HTMLElement>('.row').forEach((row) => {
+        const rowTopics = (row.dataset.topics ?? '').split(' ').filter(Boolean);
+        const visible =
+          selected.size === 0 || rowTopics.some((t) => selected.has(t));
+        row.classList.toggle('is-topic-hidden', !visible);
       });
-    });
+      archive.querySelectorAll<HTMLElement>('.group').forEach((g) => {
+        const total = g.querySelectorAll('.row').length;
+        const visible = g.querySelectorAll('.row:not(.is-topic-hidden)').length;
+        g.classList.toggle('is-empty', total > 0 && visible === 0);
+      });
+    };
+
+    archive
+      .querySelectorAll<HTMLButtonElement>('.archive__chip')
+      .forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const active = !chip.classList.contains('is-active');
+          chip.classList.toggle('is-active', active);
+          chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+
+          if (chip.classList.contains('archive__chip--topic')) {
+            applyTopicFilter();
+            return;
+          }
+          const kind = chip.dataset.kind;
+          if (!kind) return;
+          archive
+            .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
+            .forEach((g) => g.classList.toggle('is-hidden', !active));
+        });
+      });
   }
 </script>
