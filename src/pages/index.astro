@@ -2,12 +2,13 @@
 import Base from '../layouts/Base.astro';
 import FeaturedDeck from '../components/FeaturedDeck.astro';
 import DeckRow from '../components/DeckRow.astro';
-import { loadDecks, groupByYear } from '../lib/decks';
+import { loadDecks, groupByYear, groupByKind } from '../lib/decks';
 
 const decks = loadDecks();
 const featured = decks[0];
 const rest = decks.slice(1);
-const groups = groupByYear(rest);
+const yearGroups = groupByYear(rest);
+const kindGroups = groupByKind(rest);
 const total = decks.length;
 
 // Cross-link to knowledge-docs-site. Only rendered when the env var is
@@ -52,20 +53,55 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
       )}
 
       {rest.length > 0 && (
-        <section class="archive">
-          {groups.map((group) => (
-            <section class="year">
-              <h2 class="block__heading">
-                <span class="block__rule" aria-hidden="true"></span>
-                <span class="block__label">{group.year}</span>
-              </h2>
-              <div class="year__list">
-                {group.decks.map((deck) => (
-                  <DeckRow deck={deck} />
-                ))}
-              </div>
-            </section>
-          ))}
+        <section class="archive" data-view="year">
+          <div class="archive__toggle" role="tablist" aria-label="Archive view">
+            <button
+              type="button"
+              class="archive__toggle-btn is-active"
+              data-view="year"
+              role="tab"
+              aria-selected="true"
+            >By year</button>
+            <button
+              type="button"
+              class="archive__toggle-btn"
+              data-view="kind"
+              role="tab"
+              aria-selected="false"
+            >By kind</button>
+          </div>
+
+          <div class="archive__pane archive__pane--year">
+            {yearGroups.map((group) => (
+              <section class="group">
+                <h2 class="block__heading">
+                  <span class="block__rule" aria-hidden="true"></span>
+                  <span class="block__label">{group.year}</span>
+                </h2>
+                <div class="group__list">
+                  {group.decks.map((deck) => (
+                    <DeckRow deck={deck} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <div class="archive__pane archive__pane--kind">
+            {kindGroups.map((group) => (
+              <section class="group">
+                <h2 class="block__heading">
+                  <span class="block__rule" aria-hidden="true"></span>
+                  <span class="block__label">{group.label}</span>
+                </h2>
+                <div class="group__list">
+                  {group.decks.map((deck) => (
+                    <DeckRow deck={deck} showYear />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </section>
       )}
     </>
@@ -167,9 +203,48 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     background: var(--muted);
   }
 
-  .year {
+  .group {
     margin-bottom: 48px;
   }
+
+  .archive__toggle {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    margin: 0 0 36px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .archive__toggle-btn {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 6px 14px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .archive__toggle-btn:hover {
+    color: var(--ink);
+  }
+
+  .archive__toggle-btn.is-active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .archive__pane--kind { display: none; }
+  .archive[data-view="kind"] .archive__pane--year { display: none; }
+  .archive[data-view="kind"] .archive__pane--kind { display: block; }
 
   @media (max-width: 640px) {
     .masthead__name {
@@ -183,3 +258,21 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     }
   }
 </style>
+
+<script>
+  const archive = document.querySelector<HTMLElement>('.archive');
+  if (archive) {
+    const buttons = archive.querySelectorAll<HTMLButtonElement>('.archive__toggle-btn');
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view ?? 'year';
+        archive.dataset.view = view;
+        buttons.forEach((b) => {
+          const active = b.dataset.view === view;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      });
+    });
+  }
+</script>

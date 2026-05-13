@@ -4,14 +4,19 @@ import { monthLabel } from '../lib/decks';
 
 interface Props {
   deck: DeckMetadata;
+  /** When grouping by kind the year heading is gone, so the row must
+   *  carry its own year next to the month. */
+  showYear?: boolean;
 }
 
-const { deck } = Astro.props;
+const { deck, showYear = false } = Astro.props;
 const month = monthLabel(deck.date);
+const year = deck.date?.slice(0, 4);
+const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month;
 ---
 
-<article class={`row${deck.available ? '' : ' row--missing'}`}>
-  <div class="row__month">{month}</div>
+<article class={`row${deck.available ? '' : ' row--missing'}${showYear ? ' row--with-year' : ''}`}>
+  <div class="row__month">{dateLabel}</div>
 
   <a class="row__thumb" href={deck.primaryUrl ?? '#'} aria-hidden={deck.primaryThumbnail ? undefined : 'true'}>
     {deck.primaryThumbnail ? (
@@ -73,6 +78,10 @@ const month = monthLabel(deck.date);
     column-gap: 20px;
     padding: 28px 0;
     border-bottom: 1px solid var(--rule);
+  }
+
+  .row--with-year {
+    grid-template-columns: 78px 96px 1fr;
   }
 
   .row:last-child {
@@ -243,6 +252,9 @@ const month = monthLabel(deck.date);
       grid-template-columns: 36px 72px 1fr;
       column-gap: 14px;
       padding: 22px 0;
+    }
+    .row--with-year {
+      grid-template-columns: 64px 72px 1fr;
     }
     .row__title {
       font-size: 21px;

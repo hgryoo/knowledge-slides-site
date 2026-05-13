@@ -50,6 +50,20 @@ export type DeckYearGroup = {
   decks: DeckMetadata[];
 };
 
+export type DeckKindGroup = {
+  kind: DeckKind;
+  label: string;
+  decks: DeckMetadata[];
+};
+
+const KIND_ORDER: DeckKind[] = ['talks', 'notes', 'reading', 'other'];
+const KIND_LABEL: Record<DeckKind, string> = {
+  talks: 'Talks',
+  notes: 'Notes',
+  reading: 'Reading',
+  other: 'Other',
+};
+
 function distExists(file: string): boolean {
   try {
     return fs.statSync(path.join(DIST_ROOT, file)).isFile();
@@ -99,13 +113,17 @@ export function loadDecks(): DeckMetadata[] {
     const metaPath = path.join(DECKS_ROOT, slug, 'metadata.json');
     if (!fs.existsSync(metaPath)) continue;
 
-    let raw: Partial<DeckMetadata>;
+    let raw: Partial<DeckMetadata> & { hidden?: boolean };
     try {
       raw = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
     } catch (err) {
       console.warn(`[decks] failed to parse ${metaPath}:`, err);
       continue;
     }
+
+    // `hidden: true` opts a deck out of the landing listing entirely (the
+    // built HTML/PDF stay accessible by direct URL).
+    if (raw.hidden === true) continue;
 
     const languages = LANGS.map((l) => detectLang(slug, l)).filter(
       (x): x is LangAssets => x !== null,
@@ -148,6 +166,23 @@ export function groupByYear(decks: DeckMetadata[]): DeckYearGroup[] {
   return [...buckets.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([year, decks]) => ({ year, decks }));
+}
+
+// Fixed kind order (talks → notes → reading → other) keeps the "By kind"
+// view stable even when a category temporarily empties out. Empty buckets
+// are dropped so the UI doesn't render naked headings.
+export function groupByKind(decks: DeckMetadata[]): DeckKindGroup[] {
+  const buckets = new Map<DeckKind, DeckMetadata[]>();
+  for (const deck of decks) {
+    const kind: DeckKind = deck.kind ?? 'talks';
+    if (!buckets.has(kind)) buckets.set(kind, []);
+    buckets.get(kind)!.push(deck);
+  }
+  return KIND_ORDER.filter((k) => buckets.has(k)).map((kind) => ({
+    kind,
+    label: KIND_LABEL[kind],
+    decks: buckets.get(kind)!,
+  }));
 }
 
 const MONTH_LABELS = [
