@@ -11,7 +11,16 @@ const SLIDES_REPO =
 const DECKS_ROOT = path.join(SLIDES_REPO, 'decks');
 const DIST_ROOT = path.join(SLIDES_REPO, 'dist');
 
-export type DeckKind = 'talks' | 'notes' | 'reading' | 'other';
+/** A deck's section on the landing page. Derived from artifact presence
+ *  (slides → talks, companion documents → reading) so the same card can
+ *  legitimately appear in both sections; see `deriveCategories`.
+ *
+ *  Legacy values `notes` / `other` remain in the type for backward-
+ *  compat with metadata.json files that set them explicitly. The
+ *  landing-page chip surface only renders the canonical two: talks
+ *  and reading.
+ */
+export type DeckKind = 'talks' | 'reading' | 'notes' | 'other';
 export type LangCode = 'en' | 'ko';
 
 const LANGS: LangCode[] = ['en', 'ko'];
@@ -52,6 +61,14 @@ export type DeckMetadata = {
    *  Distinct from `tags` (free-form keywords). */
   topics: string[];
   kind?: DeckKind;
+  /** Landing-page sections this deck belongs to. Derived from
+   *  artifact presence:
+   *    - has built slides (any language with html or pdf)  → 'talks'
+   *    - has companion documents (documents[] non-empty)   → 'reading'
+   *  A deck with both lands in both sections. An explicit `kind` in
+   *  metadata.json pins the deck to that single section (used when a
+   *  card with slides should still read as a doc, or vice versa). */
+  categories: DeckKind[];
   source?: Record<string, unknown>;
   /** Companion-document links rendered next to slide outputs. Empty
    *  array (not omitted) when the deck has slides only. */
@@ -106,11 +123,13 @@ export type DeckKindGroup = {
   decks: DeckMetadata[];
 };
 
-const KIND_ORDER: DeckKind[] = ['talks', 'notes', 'reading', 'other'];
+// Canonical landing-page sections. A deck can appear in BOTH when it
+// carries built slides and companion documents — see deriveCategories.
+const KIND_ORDER: DeckKind[] = ['talks', 'reading'];
 const KIND_LABEL: Record<DeckKind, string> = {
   talks: 'Talks',
-  notes: 'Notes',
   reading: 'Reading',
+  notes: 'Notes',
   other: 'Other',
 };
 
@@ -120,6 +139,35 @@ function distExists(file: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** A deck's section membership is derived from artifact presence:
+ *   - languages with html or pdf  → 'talks'    (presentation-format)
+ *   - documents[] non-empty       → 'reading'  (companion document)
+ *   - both                        → ['talks', 'reading']
+ *  An explicit `kind` in metadata.json pins the deck to that single
+ *  section, used when the natural derivation gets it wrong (e.g.
+ *  a spec deck with slides should still surface as a reading entry
+ *  until the spec.md is attached).
+ *  Returns at least one category for any deck that survives the
+ *  earlier `languages.length === 0 && documents.length === 0` skip.
+ */
+function deriveCategories(
+  explicitKind: unknown,
+  languages: LangAssets[],
+  documents: DeckDocument[],
+): DeckKind[] {
+  if (typeof explicitKind === 'string' && KIND_ORDER.includes(explicitKind as DeckKind)) {
+    return [explicitKind as DeckKind];
+  }
+  const cats: DeckKind[] = [];
+  const hasSlides = languages.some((l) => !!l.html || !!l.pdf);
+  const hasDocs = documents.length > 0;
+  if (hasSlides) cats.push('talks');
+  if (hasDocs) cats.push('reading');
+  // Legacy fallback for decks with only an unbuilt lang folder.
+  if (cats.length === 0) cats.push('talks');
+  return cats;
 }
 
 // Deck asset URLs are emitted as RELATIVE paths (no leading slash) so
@@ -200,6 +248,8 @@ export function loadDecks(): DeckMetadata[] {
     const primaryThumbnail = languages.find((l) => l.thumbnail)?.thumbnail;
     const primaryUrl = firstBuilt?.html ?? documents[0]?.url;
 
+    const categories = deriveCategories(raw.kind, languages, documents);
+
     decks.push({
       slug: raw.slug ?? slug,
       title: raw.title ?? slug,
@@ -209,7 +259,8 @@ export function loadDecks(): DeckMetadata[] {
       summary: raw.summary,
       tags: raw.tags ?? [],
       topics: Array.isArray(raw.topics) ? raw.topics : [],
-      kind: raw.kind ?? 'talks',
+      kind: raw.kind,
+      categories,
       source: raw.source as Record<string, unknown> | undefined,
       documents,
       languages,
@@ -266,9 +317,13 @@ export function collectTopics(decks: DeckMetadata[]): TopicEntry[] {
 export function groupByKind(decks: DeckMetadata[]): DeckKindGroup[] {
   const buckets = new Map<DeckKind, DeckMetadata[]>();
   for (const deck of decks) {
-    const kind: DeckKind = deck.kind ?? 'talks';
-    if (!buckets.has(kind)) buckets.set(kind, []);
-    buckets.get(kind)!.push(deck);
+    // A deck can belong to multiple categories. Push the same deck
+    // reference into every bucket it claims — talks and reading both,
+    // when applicable.
+    for (const cat of deck.categories) {
+      if (!buckets.has(cat)) buckets.set(cat, []);
+      buckets.get(cat)!.push(deck);
+    }
   }
   return KIND_ORDER.filter((k) => buckets.has(k)).map((kind) => ({
     kind,
