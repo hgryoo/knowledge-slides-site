@@ -2,14 +2,13 @@
 import Base from '../layouts/Base.astro';
 import FeaturedDeck from '../components/FeaturedDeck.astro';
 import DeckRow from '../components/DeckRow.astro';
-import { loadDecks, groupByYear, groupByKind } from '../lib/decks';
+import { loadDecks, groupByKind } from '../lib/decks';
 
 const decks = loadDecks();
 const published = decks.filter((d) => !d.draft);
 const drafts = decks.filter((d) => d.draft);
 const featured = published[0];
 const rest = published.slice(1);
-const yearGroups = groupByYear(rest);
 const kindGroups = groupByKind(rest);
 const total = published.length + drafts.length;
 
@@ -55,94 +54,60 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
       )}
 
       {(rest.length > 0 || drafts.length > 0) && (
-        <section class="archive" data-view="year">
-          <div class="archive__toggle" role="tablist" aria-label="Archive view">
-            <button
-              type="button"
-              class="archive__toggle-btn is-active"
-              data-view="year"
-              role="tab"
-              aria-selected="true"
-            >By year</button>
-            <button
-              type="button"
-              class="archive__toggle-btn"
-              data-view="kind"
-              role="tab"
-              aria-selected="false"
-            >By kind</button>
-            {drafts.length > 0 && (
-              <button
-                type="button"
-                class="archive__toggle-btn"
-                data-view="draft"
-                role="tab"
-                aria-selected="false"
-              >Drafts<span class="archive__toggle-count">{drafts.length}</span></button>
-            )}
-          </div>
-
-          <div class="archive__pane archive__pane--year">
-            {yearGroups.map((group) => (
-              <section class="group">
-                <h2 class="block__heading">
-                  <span class="block__rule" aria-hidden="true"></span>
-                  <span class="block__label">{group.year}</span>
-                </h2>
-                <div class="group__list">
-                  {group.decks.map((deck) => (
-                    <DeckRow deck={deck} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-
-          <div class="archive__pane archive__pane--kind">
-            {kindGroups.length > 1 && (
-              <div class="archive__chips" role="group" aria-label="Filter by kind">
-                {kindGroups.map((group) => (
+        <section class="archive">
+          {(kindGroups.length > 1 || drafts.length > 0) && (
+            <div class="archive__chips" role="group" aria-label="Filter">
+              {kindGroups.map((group) => (
+                <button
+                  type="button"
+                  class="archive__chip is-active"
+                  data-kind={group.kind}
+                  aria-pressed="true"
+                >{group.label}</button>
+              ))}
+              {drafts.length > 0 && (
+                <>
+                  <span class="archive__chip-sep" aria-hidden="true"></span>
                   <button
                     type="button"
-                    class="archive__chip is-active"
-                    data-kind={group.kind}
-                    aria-pressed="true"
-                  >{group.label}</button>
+                    class="archive__chip archive__chip--draft"
+                    data-kind="draft"
+                    aria-pressed="false"
+                  >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
+                </>
+              )}
+            </div>
+          )}
+
+          {kindGroups.map((group) => (
+            <section class="group" data-kind={group.kind}>
+              <h2 class="block__heading">
+                <span class="block__rule" aria-hidden="true"></span>
+                <span class="block__label">{group.label}</span>
+              </h2>
+              <div class="group__list">
+                {group.decks.map((deck) => (
+                  <DeckRow deck={deck} showYear />
                 ))}
               </div>
-            )}
-            {kindGroups.map((group) => (
-              <section class="group" data-kind={group.kind}>
-                <h2 class="block__heading">
-                  <span class="block__rule" aria-hidden="true"></span>
-                  <span class="block__label">{group.label}</span>
-                </h2>
-                <div class="group__list">
-                  {group.decks.map((deck) => (
-                    <DeckRow deck={deck} showYear />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+            </section>
+          ))}
 
           {drafts.length > 0 && (
-            <div class="archive__pane archive__pane--draft">
-              <section class="group">
-                <h2 class="block__heading">
-                  <span class="block__rule" aria-hidden="true"></span>
-                  <span class="block__label">In progress</span>
-                </h2>
-                <p class="archive__draft-note">
-                  작성 중인 슬라이드. 빌드된 결과물이 있어도 메인 목록에는 노출되지 않습니다.
-                </p>
-                <div class="group__list">
-                  {drafts.map((deck) => (
-                    <DeckRow deck={deck} showYear />
-                  ))}
-                </div>
-              </section>
-            </div>
+            <section class="group is-hidden" data-kind="draft">
+              <h2 class="block__heading">
+                <span class="block__rule" aria-hidden="true"></span>
+                <span class="block__label">In progress</span>
+              </h2>
+              <p class="archive__draft-note">
+                작성 중인 슬라이드. 빌드된 결과물이 있어도 메인 목록에는 노출되지 않습니다.
+              </p>
+              <div class="group__list">
+                {drafts.map((deck) => (
+                  <DeckRow deck={deck} showYear />
+                ))}
+              </div>
+            </section>
           )}
         </section>
       )}
@@ -249,82 +214,12 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     margin-bottom: 48px;
   }
 
-  .archive__toggle {
-    display: inline-flex;
-    gap: 4px;
-    padding: 3px;
-    margin: 0 0 36px;
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.5);
-  }
-
-  .archive__toggle-btn {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    padding: 6px 14px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    cursor: pointer;
-    border-radius: 3px;
-    transition: color 0.15s ease, background-color 0.15s ease;
-  }
-
-  .archive__toggle-btn:hover {
-    color: var(--ink);
-  }
-
-  .archive__toggle-btn.is-active {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
-  .archive__pane--kind,
-  .archive__pane--draft { display: none; }
-
-  .archive[data-view="kind"] .archive__pane--year,
-  .archive[data-view="kind"] .archive__pane--draft { display: none; }
-  .archive[data-view="kind"] .archive__pane--kind { display: block; }
-
-  .archive[data-view="draft"] .archive__pane--year,
-  .archive[data-view="draft"] .archive__pane--kind { display: none; }
-  .archive[data-view="draft"] .archive__pane--draft { display: block; }
-
-  .archive__toggle-count {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: var(--accent);
-    color: var(--paper);
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.6;
-    letter-spacing: 0;
-  }
-
-  .archive__toggle-btn.is-active .archive__toggle-count {
-    background: var(--paper);
-    color: var(--accent);
-  }
-
-  .archive__draft-note {
-    margin: 0 0 18px;
-    font-size: 13px;
-    color: var(--muted);
-    font-family: var(--font-sans);
-  }
-
   .archive__chips {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 6px;
-    margin: -12px 0 28px;
+    margin: 0 0 36px;
   }
 
   .archive__chip {
@@ -358,6 +253,49 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     margin-right: 2px;
   }
 
+  /* Drafts is a separate filter dimension from kind, so it sits past
+   * a thin vertical rule and uses a dashed outline when inactive to
+   * signal "not the same axis as the other chips". */
+  .archive__chip-sep {
+    display: inline-block;
+    width: 1px;
+    align-self: stretch;
+    margin: 4px 6px;
+    background: var(--rule);
+  }
+
+  .archive__chip--draft {
+    border-style: dashed;
+  }
+
+  .archive__chip--draft.is-active {
+    border-style: solid;
+  }
+
+  .archive__chip-count {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--rule);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.6;
+  }
+
+  .archive__chip--draft.is-active .archive__chip-count {
+    background: var(--paper);
+    color: var(--accent);
+  }
+
+  .archive__draft-note {
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-sans);
+  }
+
   .group.is-hidden { display: none; }
 
   @media (max-width: 640px) {
@@ -374,38 +312,23 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 </style>
 
 <script>
+  // Each chip mirrors visibility of its matching .group[data-kind=...].
+  // Drafts is just another data-kind value ("draft") that happens to
+  // start in the off state.
   const archive = document.querySelector<HTMLElement>('.archive');
   if (archive) {
-    const buttons = archive.querySelectorAll<HTMLButtonElement>('.archive__toggle-btn');
-    buttons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const view = btn.dataset.view ?? 'year';
-        archive.dataset.view = view;
-        buttons.forEach((b) => {
-          const active = b.dataset.view === view;
-          b.classList.toggle('is-active', active);
-          b.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
+    const chips = archive.querySelectorAll<HTMLButtonElement>('.archive__chip');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const kind = chip.dataset.kind;
+        if (!kind) return;
+        const active = !chip.classList.contains('is-active');
+        chip.classList.toggle('is-active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        archive
+          .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
+          .forEach((g) => g.classList.toggle('is-hidden', !active));
       });
     });
-
-    // Per-kind chip toggles inside the By kind pane. Each chip mirrors
-    // the visibility of its matching `.group[data-kind=...]` section.
-    const kindPane = archive.querySelector<HTMLElement>('.archive__pane--kind');
-    if (kindPane) {
-      const chips = kindPane.querySelectorAll<HTMLButtonElement>('.archive__chip');
-      chips.forEach((chip) => {
-        chip.addEventListener('click', () => {
-          const kind = chip.dataset.kind;
-          if (!kind) return;
-          const active = !chip.classList.contains('is-active');
-          chip.classList.toggle('is-active', active);
-          chip.setAttribute('aria-pressed', active ? 'true' : 'false');
-          kindPane
-            .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
-            .forEach((g) => g.classList.toggle('is-hidden', !active));
-        });
-      });
-    }
   }
 </script>
