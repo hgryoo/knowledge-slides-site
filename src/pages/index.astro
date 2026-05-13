@@ -64,17 +64,13 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
                 aria-pressed="true"
               >{group.label}</button>
             ))}
-            {drafts.length > 0 && (
-              <>
-                <span class="archive__chip-sep" aria-hidden="true"></span>
-                <button
-                  type="button"
-                  class="archive__chip archive__chip--draft"
-                  data-kind="draft"
-                  aria-pressed="false"
-                >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
-              </>
-            )}
+            <span class="archive__chip-sep" aria-hidden="true"></span>
+            <button
+              type="button"
+              class="archive__chip archive__chip--draft"
+              data-kind="draft"
+              aria-pressed="false"
+            >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
           </div>
 
           {kindGroups.map((group) => (
