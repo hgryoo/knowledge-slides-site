@@ -99,8 +99,20 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
           </div>
 
           <div class="archive__pane archive__pane--kind">
+            {kindGroups.length > 1 && (
+              <div class="archive__chips" role="group" aria-label="Filter by kind">
+                {kindGroups.map((group) => (
+                  <button
+                    type="button"
+                    class="archive__chip is-active"
+                    data-kind={group.kind}
+                    aria-pressed="true"
+                  >{group.label}</button>
+                ))}
+              </div>
+            )}
             {kindGroups.map((group) => (
-              <section class="group">
+              <section class="group" data-kind={group.kind}>
                 <h2 class="block__heading">
                   <span class="block__rule" aria-hidden="true"></span>
                   <span class="block__label">{group.label}</span>
@@ -308,6 +320,46 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     font-family: var(--font-sans);
   }
 
+  .archive__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: -12px 0 28px;
+  }
+
+  .archive__chip {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .archive__chip:hover {
+    color: var(--ink);
+    border-color: var(--muted-soft);
+  }
+
+  .archive__chip.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper);
+  }
+
+  .archive__chip.is-active::before {
+    content: "✓ ";
+    margin-right: 2px;
+  }
+
+  .group.is-hidden { display: none; }
+
   @media (max-width: 640px) {
     .masthead__name {
       font-size: 44px;
@@ -336,5 +388,24 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
         });
       });
     });
+
+    // Per-kind chip toggles inside the By kind pane. Each chip mirrors
+    // the visibility of its matching `.group[data-kind=...]` section.
+    const kindPane = archive.querySelector<HTMLElement>('.archive__pane--kind');
+    if (kindPane) {
+      const chips = kindPane.querySelectorAll<HTMLButtonElement>('.archive__chip');
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const kind = chip.dataset.kind;
+          if (!kind) return;
+          const active = !chip.classList.contains('is-active');
+          chip.classList.toggle('is-active', active);
+          chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+          kindPane
+            .querySelectorAll<HTMLElement>(`.group[data-kind="${kind}"]`)
+            .forEach((g) => g.classList.toggle('is-hidden', !active));
+        });
+      });
+    }
   }
 </script>
