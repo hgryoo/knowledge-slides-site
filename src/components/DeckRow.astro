@@ -39,6 +39,7 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
       )}
       {!deck.available && <span class="row__pending">(unbuilt)</span>}
       {deck.draft && <span class="row__draft-chip">draft</span>}
+      {deck.hidden && <span class="row__local-chip" title="hidden from the public landing — only listed locally">local</span>}
     </h3>
 
     {deck.subtitle && <p class="row__subtitle">{deck.subtitle}</p>}
@@ -194,6 +195,19 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
     color: var(--ink);
     background: rgba(168, 51, 42, 0.10);
     padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .row__local-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    background: rgba(20, 18, 14, 0.06);
+    border: 1px dashed var(--muted-soft);
+    padding: 0 5px;
     border-radius: 3px;
     margin-left: 8px;
     vertical-align: middle;

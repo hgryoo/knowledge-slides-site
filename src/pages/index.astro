@@ -11,7 +11,10 @@ const decks = loadDecks();
 // row-level filter (default: hide drafts; toggled on: show drafts
 // only). This makes "reading + draft" mean "drafts in reading", which
 // matches the chip-combination user expectation.
-const featuredCandidate = decks.find((d) => !d.draft);
+// Hidden ('local-only') decks never claim the Featured slot — they're
+// private to the local viewer, not the showcase. Drafts are likewise
+// not featurable.
+const featuredCandidate = decks.find((d) => !d.draft && !d.hidden);
 const featured = featuredCandidate;
 const rest = decks.filter((d) => d.slug !== featuredCandidate?.slug);
 const drafts = decks.filter((d) => d.draft);

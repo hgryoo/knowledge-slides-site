@@ -12,8 +12,14 @@ A deck only appears on the landing page if it has a `metadata.json`. The `cubrid
 
 Two metadata flags control listing visibility:
 
-- `"hidden": true` — completely hidden from the landing (e.g. a one-off you briefly presented and don't want listed). Direct URL still works.
-- `"draft": true` — surfaced only under the **Drafts** tab on the landing; excluded from By year / By kind views and from Featured selection.
+- `"hidden": true` — hidden from the **deployed** landing only (i.e. `hgryoo.dev/knowledge-slides-site`). The card still appears on the local dev landing with a small `local` chip so the author can see private decks while previewing. Built HTML/PDF are uploaded to the public site as usual, so anyone with the direct URL can open the deck — the privacy guarantee is "not listed on the landing", not "not deployed".
+- `"draft": true` — surfaced only when the **Drafts** chip is toggled on; excluded from Featured selection. Visible on both local and deployed builds.
+
+The public/local split is driven by the `PUBLIC_BUILD=1` env var, which is set in `.github/workflows/deploy.yml` and unset locally. To preview the public-build behavior locally:
+
+```bash
+PUBLIC_BUILD=1 npm run dev    # or `npm run build && npm run preview`
+```
 
 ## Run locally
 

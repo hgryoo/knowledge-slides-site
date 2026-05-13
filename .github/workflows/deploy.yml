@@ -49,6 +49,10 @@ jobs:
           # Cross-link back to the docs site on the deployed build.
           # Unset locally so dev landing stays minimal.
           DOCS_SITE_URL: https://hgryoo.dev/knowledge-docs-site/
+          # Hide `hidden: true` decks from the public landing. Locally
+          # this flag is unset, so the dev landing lists every deck
+          # (with a "local" chip on the private ones).
+          PUBLIC_BUILD: '1'
         run: npm run build
 
       - name: Upload artifact

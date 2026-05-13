@@ -12,6 +12,13 @@ const SLIDES_REPO =
 const DECKS_ROOT = path.join(SLIDES_REPO, 'decks');
 const DIST_ROOT = path.join(SLIDES_REPO, 'dist');
 
+// `PUBLIC_BUILD=1` marks the deployed build (set in deploy.yml). Decks
+// with `hidden: true` in metadata.json are filtered out only under this
+// flag; locally they remain listed (with a chip) so the author can see
+// every private deck on the dev landing without losing the privacy
+// guarantee on the public site.
+const PUBLIC_BUILD = process.env.PUBLIC_BUILD === '1' || process.env.PUBLIC_BUILD === 'true';
+
 /** A deck's section on the landing page. Derived from artifact presence
  *  (slides → talks, companion documents → reading) so the same card can
  *  legitimately appear in both sections; see `deriveCategories`.
@@ -96,6 +103,13 @@ export type DeckMetadata = {
   /** Author-in-progress. Excluded from the main listing and from
    *  featured selection; surfaced only in the "Drafts" pane. */
   draft: boolean;
+  /** Listed on the local dev landing only — never on the deployed
+   *  public build (`PUBLIC_BUILD=1`). The dist artifacts are still
+   *  uploaded by CI, so anyone with the direct URL can open the deck;
+   *  what's hidden is just the card on the landing page. Surfaces a
+   *  small "local" chip in the row so the local viewer can tell which
+   *  cards are private. */
+  hidden: boolean;
   /** Epoch milliseconds when this deck's metadata.json was last
    *  committed (or, in local dev, last modified on disk). Used as a
    *  tie-break when multiple decks share the same `date` so the newer
@@ -295,9 +309,12 @@ export function loadDecks(): DeckMetadata[] {
       continue;
     }
 
-    // `hidden: true` opts a deck out of the landing listing entirely (the
-    // built HTML/PDF stay accessible by direct URL).
-    if (raw.hidden === true) continue;
+    // `hidden: true` opts a deck out of the public landing listing
+    // (the built HTML/PDF stay accessible by direct URL). On the local
+    // dev landing we still list it — with a small "local" chip — so
+    // the author can see every private deck without exposing them on
+    // hgryoo.dev/knowledge-slides-site.
+    if (raw.hidden === true && PUBLIC_BUILD) continue;
 
     const languages = LANGS.map((l) => detectLang(slug, l)).filter(
       (x): x is LangAssets => x !== null,
@@ -346,6 +363,7 @@ export function loadDecks(): DeckMetadata[] {
       primaryUrl,
       available: !!firstBuilt || documents.length > 0,
       draft: raw.draft === true,
+      hidden: raw.hidden === true,
       uploadedAt,
     });
   }
