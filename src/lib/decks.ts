@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -83,6 +84,12 @@ export type DeckMetadata = {
   /** Author-in-progress. Excluded from the main listing and from
    *  featured selection; surfaced only in the "Drafts" pane. */
   draft: boolean;
+  /** Epoch milliseconds when this deck's metadata.json was last
+   *  committed (or, in local dev, last modified on disk). Used as a
+   *  tie-break when multiple decks share the same `date` so the newer
+   *  upload floats to the top of the month group. See `uploadTimestamp`
+   *  for source resolution. */
+  uploadedAt: number;
 };
 
 export type TopicEntry = { topic: string; label: string; count: number };
@@ -132,6 +139,43 @@ const KIND_LABEL: Record<DeckKind, string> = {
   notes: 'Notes',
   other: 'Other',
 };
+
+/** When the listing has multiple decks with the same `date` (a common
+ *  case for the YYYY-MM-* slug convention where many decks share a
+ *  month), tie-break on "most recently uploaded first". The signal is:
+ *
+ *    1. The commit time of the deck's metadata.json in the slides repo
+ *       (via `git log -1 --format=%ct`). This is the canonical "when
+ *       did this deck appear in the repo" timestamp and survives CI
+ *       checkouts (mtime gets reset on clone).
+ *    2. Fallback: filesystem mtime (for an uncommitted metadata.json
+ *       in local dev).
+ *    3. Final fallback: 0 (older than everything).
+ *
+ *  NOTE: The deploy workflow needs to fetch full git history for the
+ *  knowledge-slides repo (`fetch-depth: 0`) for #1 to work on CI; a
+ *  shallow clone would only see the most recent commit and every deck
+ *  would get the same timestamp.
+ */
+function uploadTimestamp(metaPath: string): number {
+  try {
+    const out = execFileSync(
+      'git',
+      ['-C', SLIDES_REPO, 'log', '-1', '--format=%ct', '--', metaPath],
+      { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] },
+    ).trim();
+    const ts = parseInt(out, 10);
+    if (Number.isFinite(ts) && ts > 0) return ts * 1000;
+  } catch {
+    // git not available, file not committed yet, or repo has no
+    // history — fall through to mtime.
+  }
+  try {
+    return fs.statSync(metaPath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
 
 function distExists(file: string): boolean {
   try {
@@ -249,6 +293,7 @@ export function loadDecks(): DeckMetadata[] {
     const primaryUrl = firstBuilt?.html ?? documents[0]?.url;
 
     const categories = deriveCategories(raw.kind, languages, documents);
+    const uploadedAt = uploadTimestamp(metaPath);
 
     decks.push({
       slug: raw.slug ?? slug,
@@ -268,10 +313,20 @@ export function loadDecks(): DeckMetadata[] {
       primaryUrl,
       available: !!firstBuilt || documents.length > 0,
       draft: raw.draft === true,
+      uploadedAt,
     });
   }
 
-  decks.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+  // Sort decks primarily by `date` descending, then break ties on
+  // upload time (most recent first). The tie-break matters for the
+  // common case where several decks share a YYYY-MM and the user
+  // expects the newest upload at the top of that month group.
+  decks.sort((a, b) => {
+    const da = a.date ?? '';
+    const db = b.date ?? '';
+    if (da !== db) return db.localeCompare(da);
+    return b.uploadedAt - a.uploadedAt;
+  });
   return decks;
 }
 
