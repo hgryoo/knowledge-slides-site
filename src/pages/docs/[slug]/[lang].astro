@@ -1,0 +1,280 @@
+---
+/**
+ * Renders companion-document markdown files from the sibling
+ * knowledge-slides repo as styled HTML pages using Astro's native
+ * content collections + `<Content />` pipeline. That pipeline gives
+ * us Shiki syntax highlighting, heading anchors, and any remark /
+ * rehype plugins configured in `astro.config.mjs` — without manually
+ * shelling out to a markdown library.
+ *
+ * URL shape: /docs/<slug>/<lang>/  (slug and lang split into two
+ * segments so the literal dot in `<slug>.<lang>` doesn't collide
+ * with Astro's route-extension handling — flat `<slug>.<lang>` got
+ * URL-normalised down to e.g. `…draften`, swallowing the separator).
+ *
+ * The collection is defined in `src/content.config.ts` and points at
+ * `$SLIDES_REPO/dist/*.{en,ko}.md`.
+ */
+import { getCollection, render } from 'astro:content';
+import fs from 'node:fs';
+import path from 'node:path';
+import Base from '../../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  return docs.map((doc) => {
+    const lastDot = doc.id.lastIndexOf('.');
+    const slug = lastDot > 0 ? doc.id.slice(0, lastDot) : doc.id;
+    const lang = lastDot > 0 ? doc.id.slice(lastDot + 1) : 'en';
+    return { params: { slug, lang }, props: { doc } };
+  });
+}
+
+const { doc } = Astro.props;
+const { slug, lang } = Astro.params;
+const { Content } = await render(doc);
+
+// Pull deck title / subtitle / date from the sibling metadata.json so
+// the doc page has a meaningful header even when the markdown itself
+// starts mid-document.
+// NOTE: Use process.cwd() (the site repo root at npm-run time) instead
+// of `here = fileURLToPath(import.meta.url)` — Astro compiles `.astro`
+// pages to a different location at build time, breaking the relative
+// path. process.cwd() is stable for both `npm run dev` and `astro build`.
+const SLIDES_REPO =
+  process.env.SLIDES_REPO ?? path.resolve(process.cwd(), '../knowledge-slides');
+let deckTitle = doc.id;
+let deckSubtitle = '';
+let deckDate = '';
+try {
+  const metaPath = path.join(SLIDES_REPO, 'decks', slug, 'metadata.json');
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+  deckTitle = meta.title ?? deckTitle;
+  deckSubtitle = meta.subtitle ?? '';
+  deckDate = meta.date ?? '';
+} catch {
+  /* no metadata; fall back to filename */
+}
+
+const langLabel = (lang ?? 'en').toUpperCase();
+const rawHref = `${import.meta.env.BASE_URL ?? '/'}/decks/${slug}.${lang}.md`.replace(
+  /\/+/g,
+  '/',
+);
+const homeHref = `${import.meta.env.BASE_URL ?? '/'}`.replace(/\/+$/, '/') || '/';
+---
+
+<Base title={`${deckTitle} — ${langLabel || 'doc'}`} description={deckSubtitle}>
+  <article class="doc">
+    <header class="doc__header">
+      <p class="doc__breadcrumb">
+        <a href={homeHref}>← All decks</a>
+      </p>
+      <h1 class="doc__title">{deckTitle}</h1>
+      {deckSubtitle && <p class="doc__subtitle">{deckSubtitle}</p>}
+      <p class="doc__meta">
+        {deckDate && <span>{deckDate}</span>}
+        {deckDate && langLabel && <span> · </span>}
+        {langLabel && <span class="doc__lang">{langLabel}</span>}
+        <span> · </span>
+        <a class="doc__raw" href={rawHref}>raw markdown ↗</a>
+      </p>
+    </header>
+
+    <div class="doc__body">
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<style>
+  .doc {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .doc__header {
+    margin-bottom: 56px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .doc__breadcrumb {
+    margin: 0 0 24px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .doc__breadcrumb a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+  }
+  .doc__breadcrumb a:hover {
+    color: var(--accent);
+  }
+  .doc__title {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 42px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+  }
+  .doc__subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .doc__meta {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .doc__lang {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    background: rgba(168, 51, 42, 0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  .doc__raw {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+  }
+  .doc__raw:hover { color: var(--accent); }
+
+  /* Body styling — typography is tuned for long-form reading. Code
+     blocks land already pre-highlighted by Shiki (Astro built-in)
+     so the only thing we add is the dark-background container. */
+  .doc__body :global(h1) {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.2;
+    margin: 56px 0 16px;
+    letter-spacing: -0.02em;
+  }
+  .doc__body :global(h2) {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.25;
+    margin: 48px 0 14px;
+    letter-spacing: -0.015em;
+  }
+  .doc__body :global(h3) {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 21px;
+    line-height: 1.3;
+    margin: 36px 0 12px;
+  }
+  .doc__body :global(h4),
+  .doc__body :global(h5),
+  .doc__body :global(h6) {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 28px 0 10px;
+    color: var(--ink-soft);
+  }
+  .doc__body :global(p) {
+    margin: 16px 0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  .doc__body :global(ul),
+  .doc__body :global(ol) {
+    margin: 16px 0;
+    padding-left: 24px;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  .doc__body :global(li) {
+    margin: 6px 0;
+  }
+  .doc__body :global(blockquote) {
+    margin: 20px 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: rgba(168, 51, 42, 0.04);
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .doc__body :global(blockquote) :global(p) { margin: 8px 0; }
+
+  /* inline code */
+  .doc__body :global(:not(pre)) > :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(168, 51, 42, 0.08);
+    color: var(--accent);
+  }
+  /* code block container — Shiki paints the inner spans */
+  .doc__body :global(pre) {
+    margin: 20px 0;
+    padding: 18px 20px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc__body :global(a) {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+    text-underline-offset: 3px;
+  }
+  .doc__body :global(a:hover) {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+  .doc__body :global(table) {
+    border-collapse: collapse;
+    margin: 24px 0;
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+  .doc__body :global(th),
+  .doc__body :global(td) {
+    border: 1px solid var(--rule);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .doc__body :global(th) {
+    background: rgba(168, 51, 42, 0.04);
+    font-weight: 600;
+  }
+  .doc__body :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 18px 0;
+  }
+  .doc__body :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 40px 0;
+  }
+  @media (max-width: 640px) {
+    .doc__title { font-size: 30px; }
+    .doc__subtitle { font-size: 17px; }
+    .doc__body :global(h1) { font-size: 26px; }
+    .doc__body :global(h2) { font-size: 22px; }
+    .doc__body :global(h3) { font-size: 19px; }
+  }
+</style>
