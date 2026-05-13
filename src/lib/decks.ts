@@ -26,6 +26,20 @@ export type LangAssets = {
   thumbnail?: string;
 };
 
+/** Companion-document link surfaced next to the slide outputs on a deck
+ *  card. Most commonly an analysis doc on the sibling knowledge-docs-site
+ *  ("Doc" link beside the slides PDF), but can also point at a paper,
+ *  external blog post, or a same-repo PDF for essay-only entries.
+ *
+ *  `kind` is informational: rendered as a small label before the link
+ *  text. Free-form; current convention is `analysis | essay | paper |
+ *  reference | original`. */
+export type DeckDocument = {
+  label: string;
+  url: string;
+  kind?: string;
+};
+
 export type DeckMetadata = {
   slug: string;
   title: string;
@@ -39,6 +53,9 @@ export type DeckMetadata = {
   topics: string[];
   kind?: DeckKind;
   source?: Record<string, unknown>;
+  /** Companion-document links rendered next to slide outputs. Empty
+   *  array (not omitted) when the deck has slides only. */
+  documents: DeckDocument[];
   languages: LangAssets[];
   /** First-available language's thumbnail, used for cards. */
   primaryThumbnail?: string;
@@ -150,6 +167,7 @@ export function loadDecks(): DeckMetadata[] {
       hidden?: boolean;
       draft?: boolean;
       topics?: string[];
+      documents?: DeckDocument[];
     };
     try {
       raw = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
@@ -166,11 +184,21 @@ export function loadDecks(): DeckMetadata[] {
       (x): x is LangAssets => x !== null,
     );
 
-    if (languages.length === 0) continue; // no source slides at all
+    const documents = Array.isArray(raw.documents)
+      ? raw.documents.filter(
+          (d): d is DeckDocument =>
+            typeof d?.label === 'string' && typeof d?.url === 'string',
+        )
+      : [];
+
+    // Skip a deck only if it has neither built slides nor companion
+    // documents. An essay-only entry (no en/ko folder, just a documents
+    // array) still earns a card.
+    if (languages.length === 0 && documents.length === 0) continue;
 
     const firstBuilt = languages.find((l) => l.html);
     const primaryThumbnail = languages.find((l) => l.thumbnail)?.thumbnail;
-    const primaryUrl = firstBuilt?.html;
+    const primaryUrl = firstBuilt?.html ?? documents[0]?.url;
 
     decks.push({
       slug: raw.slug ?? slug,
@@ -183,10 +211,11 @@ export function loadDecks(): DeckMetadata[] {
       topics: Array.isArray(raw.topics) ? raw.topics : [],
       kind: raw.kind ?? 'talks',
       source: raw.source as Record<string, unknown> | undefined,
+      documents,
       languages,
       primaryThumbnail,
       primaryUrl,
-      available: !!firstBuilt,
+      available: !!firstBuilt || documents.length > 0,
       draft: raw.draft === true,
     });
   }

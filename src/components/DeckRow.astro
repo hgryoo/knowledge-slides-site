@@ -71,6 +71,20 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
         ))}
       </span>
     </div>
+
+    {deck.documents.length > 0 && (
+      <div class="row__docs">
+        {deck.documents.map((doc, i) => (
+          <span class="row__doc">
+            {i > 0 && <span class="row__sep">·</span>}
+            {doc.kind && <span class="row__doc-kind">{doc.kind}</span>}
+            <a href={doc.url} target={doc.url.startsWith('http') ? '_blank' : undefined} rel={doc.url.startsWith('http') ? 'noopener' : undefined}>
+              {doc.label}
+            </a>
+          </span>
+        ))}
+      </div>
+    )}
   </div>
 </article>
 
@@ -248,6 +262,45 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
 
   .row__dot {
     color: var(--muted-soft);
+  }
+
+  .row__docs {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .row__doc {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .row__doc-kind {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: rgba(46, 84, 158, 0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .row__doc a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+    text-underline-offset: 2px;
+  }
+
+  .row__doc a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
   }
 
   @media (max-width: 640px) {

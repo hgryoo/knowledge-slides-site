@@ -63,6 +63,20 @@ const dateLabel = deck.date && month ? `${month} ${deck.date.slice(0, 4)}` : dec
         ))}
       </span>
     </div>
+
+    {deck.documents.length > 0 && (
+      <div class="featured__docs">
+        {deck.documents.map((doc, i) => (
+          <span class="featured__doc">
+            {i > 0 && <span class="featured__sep">·</span>}
+            {doc.kind && <span class="featured__doc-kind">{doc.kind}</span>}
+            <a href={doc.url} target={doc.url.startsWith('http') ? '_blank' : undefined} rel={doc.url.startsWith('http') ? 'noopener' : undefined}>
+              {doc.label}
+            </a>
+          </span>
+        ))}
+      </div>
+    )}
   </div>
 </article>
 
@@ -244,6 +258,45 @@ const dateLabel = deck.date && month ? `${month} ${deck.date.slice(0, 4)}` : dec
 
   .featured__dot {
     color: var(--muted-soft);
+  }
+
+  .featured__docs {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .featured__doc {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .featured__doc-kind {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: rgba(46, 84, 158, 0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .featured__doc a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: var(--muted-soft);
+    text-underline-offset: 2px;
+  }
+
+  .featured__doc a:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
   }
 
   @media (max-width: 720px) {
