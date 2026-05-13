@@ -10,7 +10,10 @@ Astro landing page for decks built by the sibling [`knowledge-slides/`](../knowl
 
 A deck only appears on the landing page if it has a `metadata.json`. The `cubrid-example*` demo decks intentionally do not have one and are hidden from listings.
 
-To hide a deck that *does* have a `metadata.json` (e.g. an in-progress draft, or a one-off you briefly presented and don't want listed), set `"hidden": true` in its `metadata.json`. The built HTML/PDF stay reachable by direct URL — only the landing listing skips it.
+Two metadata flags control listing visibility:
+
+- `"hidden": true` — completely hidden from the landing (e.g. a one-off you briefly presented and don't want listed). Direct URL still works.
+- `"draft": true` — surfaced only under the **Drafts** tab on the landing; excluded from By year / By kind views and from Featured selection.
 
 ## Run locally
 

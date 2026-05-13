@@ -5,11 +5,13 @@ import DeckRow from '../components/DeckRow.astro';
 import { loadDecks, groupByYear, groupByKind } from '../lib/decks';
 
 const decks = loadDecks();
-const featured = decks[0];
-const rest = decks.slice(1);
+const published = decks.filter((d) => !d.draft);
+const drafts = decks.filter((d) => d.draft);
+const featured = published[0];
+const rest = published.slice(1);
 const yearGroups = groupByYear(rest);
 const kindGroups = groupByKind(rest);
-const total = decks.length;
+const total = published.length + drafts.length;
 
 // Cross-link to knowledge-docs-site. Only rendered when the env var is
 // set so local dev (which usually doesn't have docs-site running) stays
@@ -52,7 +54,7 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
         </section>
       )}
 
-      {rest.length > 0 && (
+      {(rest.length > 0 || drafts.length > 0) && (
         <section class="archive" data-view="year">
           <div class="archive__toggle" role="tablist" aria-label="Archive view">
             <button
@@ -69,6 +71,15 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
               role="tab"
               aria-selected="false"
             >By kind</button>
+            {drafts.length > 0 && (
+              <button
+                type="button"
+                class="archive__toggle-btn"
+                data-view="draft"
+                role="tab"
+                aria-selected="false"
+              >Drafts<span class="archive__toggle-count">{drafts.length}</span></button>
+            )}
           </div>
 
           <div class="archive__pane archive__pane--year">
@@ -102,6 +113,25 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
               </section>
             ))}
           </div>
+
+          {drafts.length > 0 && (
+            <div class="archive__pane archive__pane--draft">
+              <section class="group">
+                <h2 class="block__heading">
+                  <span class="block__rule" aria-hidden="true"></span>
+                  <span class="block__label">In progress</span>
+                </h2>
+                <p class="archive__draft-note">
+                  작성 중인 슬라이드. 빌드된 결과물이 있어도 메인 목록에는 노출되지 않습니다.
+                </p>
+                <div class="group__list">
+                  {drafts.map((deck) => (
+                    <DeckRow deck={deck} showYear />
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
         </section>
       )}
     </>
@@ -242,9 +272,41 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     color: var(--paper);
   }
 
-  .archive__pane--kind { display: none; }
-  .archive[data-view="kind"] .archive__pane--year { display: none; }
+  .archive__pane--kind,
+  .archive__pane--draft { display: none; }
+
+  .archive[data-view="kind"] .archive__pane--year,
+  .archive[data-view="kind"] .archive__pane--draft { display: none; }
   .archive[data-view="kind"] .archive__pane--kind { display: block; }
+
+  .archive[data-view="draft"] .archive__pane--year,
+  .archive[data-view="draft"] .archive__pane--kind { display: none; }
+  .archive[data-view="draft"] .archive__pane--draft { display: block; }
+
+  .archive__toggle-count {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--paper);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0;
+  }
+
+  .archive__toggle-btn.is-active .archive__toggle-count {
+    background: var(--paper);
+    color: var(--accent);
+  }
+
+  .archive__draft-note {
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-sans);
+  }
 
   @media (max-width: 640px) {
     .masthead__name {

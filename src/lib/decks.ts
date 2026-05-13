@@ -43,6 +43,9 @@ export type DeckMetadata = {
   primaryUrl?: string;
   /** True if at least one language has a built html. */
   available: boolean;
+  /** Author-in-progress. Excluded from the main listing and from
+   *  featured selection; surfaced only in the "Drafts" pane. */
+  draft: boolean;
 };
 
 export type DeckYearGroup = {
@@ -113,7 +116,7 @@ export function loadDecks(): DeckMetadata[] {
     const metaPath = path.join(DECKS_ROOT, slug, 'metadata.json');
     if (!fs.existsSync(metaPath)) continue;
 
-    let raw: Partial<DeckMetadata> & { hidden?: boolean };
+    let raw: Partial<DeckMetadata> & { hidden?: boolean; draft?: boolean };
     try {
       raw = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
     } catch (err) {
@@ -149,6 +152,7 @@ export function loadDecks(): DeckMetadata[] {
       primaryThumbnail,
       primaryUrl,
       available: !!firstBuilt,
+      draft: raw.draft === true,
     });
   }
 
