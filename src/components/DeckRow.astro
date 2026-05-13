@@ -343,4 +343,48 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
       font-size: 21px;
     }
   }
+
+  /* Wide screens: switch from horizontal list row to vertical card.
+     The parent `.group__list` becomes a multi-column grid in
+     index.astro; here we just restructure each row so the thumb sits
+     on top and the body flows beneath, like a poster card. */
+  @media (min-width: 960px) {
+    .row, .row--with-year {
+      display: flex;
+      flex-direction: column;
+      grid-template-columns: none;
+      column-gap: 0;
+      padding: 0;
+      border-bottom: none;
+    }
+    .row__month {
+      padding-top: 0;
+      margin: 0 0 8px;
+      font-size: 11px;
+    }
+    .row__thumb {
+      margin: 0 0 14px;
+    }
+    .row__title {
+      font-size: 20px;
+      line-height: 1.25;
+    }
+    .row__subtitle {
+      font-size: 14px;
+    }
+    .row__summary {
+      font-size: 14px;
+      /* multi-line clamp keeps the cards same height-ish */
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .row__meta {
+      gap: 10px;
+    }
+    .row__langs {
+      margin-left: 0;
+    }
+  }
 </style>

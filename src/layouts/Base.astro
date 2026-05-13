@@ -1,10 +1,22 @@
 ---
+/**
+ * variant controls the `.page` width.
+ *   'narrow' — 680px max (default; used by editorial / Featured rows
+ *              in the landing where prose stays readable)
+ *   'wide'   — ~1080px max (used by /docs/<slug>/<lang>/ so long-form
+ *              prose breathes but still has a comfortable reading
+ *              line-length)
+ *   'full'   — no max width, padded to viewport edges (used by the
+ *              landing grid so cards can flow into multiple columns
+ *              on big screens)
+ */
 interface Props {
   title: string;
   description?: string;
+  variant?: 'narrow' | 'wide' | 'full';
 }
 
-const { title, description } = Astro.props;
+const { title, description, variant = 'narrow' } = Astro.props;
 ---
 
 <!doctype html>
@@ -96,6 +108,12 @@ const { title, description } = Astro.props;
         margin: 0 auto;
         padding: 88px 28px 96px;
       }
+      .page--wide {
+        max-width: 1080px;
+      }
+      .page--full {
+        max-width: 1480px;
+      }
 
       .site-footer {
         margin-top: 96px;
@@ -121,7 +139,7 @@ const { title, description } = Astro.props;
     </style>
   </head>
   <body>
-    <main class="page">
+    <main class={`page${variant === 'wide' ? ' page--wide' : ''}${variant === 'full' ? ' page--full' : ''}`}>
       <slot />
       <footer class="site-footer">
         <p>© 2026 Hyunggyu Ryoo. Built with Astro.</p>

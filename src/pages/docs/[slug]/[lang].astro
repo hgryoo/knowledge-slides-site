@@ -64,7 +64,7 @@ const rawHref = `${import.meta.env.BASE_URL ?? '/'}/decks/${slug}.${lang}.md`.re
 const homeHref = `${import.meta.env.BASE_URL ?? '/'}`.replace(/\/+$/, '/') || '/';
 ---
 
-<Base title={`${deckTitle} — ${langLabel || 'doc'}`} description={deckSubtitle}>
+<Base title={`${deckTitle} — ${langLabel || 'doc'}`} description={deckSubtitle} variant="wide">
   <article class="doc">
     <header class="doc__header">
       <p class="doc__breadcrumb">
@@ -88,9 +88,11 @@ const homeHref = `${import.meta.env.BASE_URL ?? '/'}`.replace(/\/+$/, '/') || '/
 </Base>
 
 <style>
+  /* Wrapper width is set on Base via variant="wide" (1080px). The
+     doc fills that width; long lines wouldn't be readable at 1480px
+     full so we stop at 1080px. */
   .doc {
-    max-width: 760px;
-    margin: 0 auto;
+    width: 100%;
   }
   .doc__header {
     margin-bottom: 56px;

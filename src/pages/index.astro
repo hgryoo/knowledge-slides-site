@@ -28,6 +28,7 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 <Base
   title="Hyunggyu Ryoo — Talks & Notes"
   description="주로 발표 자료. 곁가지로 코드 분석 노트와 읽은 책·논문 메모."
+  variant="full"
 >
   <header class="masthead">
     <h1 class="masthead__name">Hyunggyu Ryoo</h1>
@@ -209,6 +210,24 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     width: 22px;
     height: 1px;
     background: var(--muted);
+  }
+
+  /* Card grid at wide screens. The default DeckRow uses a 3-column
+     internal layout (month / thumb / body) and stacks rows vertically;
+     here we turn `.group__list` into a responsive grid so two-or-three
+     cards flow per row on big screens. DeckRow's own CSS handles the
+     internal switch from row to vertical card via `min-width: 960px`
+     media query — see DeckRow.astro. */
+  .group__list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  @media (min-width: 960px) {
+    .group__list {
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px 28px;
+    }
   }
 
   .group {
