@@ -69,10 +69,11 @@ const dateLabel = deck.date && month ? `${month} ${deck.date.slice(0, 4)}` : dec
         {deck.documents.map((doc, i) => (
           <span class="featured__doc">
             {i > 0 && <span class="featured__sep">·</span>}
-            {doc.kind && <span class="featured__doc-kind">{doc.kind}</span>}
+            <span class="featured__doc-kind">{doc.kind ?? 'docs'}</span>
             <a href={doc.url} target={doc.url.startsWith('http') ? '_blank' : undefined} rel={doc.url.startsWith('http') ? 'noopener' : undefined}>
               {doc.label}
             </a>
+            <span class="featured__doc-format">· {doc.format ?? 'link'}</span>
           </span>
         ))}
       </div>
@@ -285,6 +286,13 @@ const dateLabel = deck.date && month ? `${month} ${deck.date.slice(0, 4)}` : dec
     background: rgba(46, 84, 158, 0.08);
     padding: 1px 6px;
     border-radius: 3px;
+  }
+
+  .featured__doc-format {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted-soft);
+    letter-spacing: 0.02em;
   }
 
   .featured__doc a {

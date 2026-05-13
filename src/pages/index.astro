@@ -5,13 +5,19 @@ import DeckRow from '../components/DeckRow.astro';
 import { loadDecks, groupByKind, collectTopics } from '../lib/decks';
 
 const decks = loadDecks();
-const published = decks.filter((d) => !d.draft);
+// Drafts are NOT segregated into their own section anymore — they
+// inline into the same Talks / Reading groups as published decks, with
+// `data-draft="true"` on the row. The draft chip then acts as a
+// row-level filter (default: hide drafts; toggled on: show drafts
+// only). This makes "reading + draft" mean "drafts in reading", which
+// matches the chip-combination user expectation.
+const featuredCandidate = decks.find((d) => !d.draft);
+const featured = featuredCandidate;
+const rest = decks.filter((d) => d.slug !== featuredCandidate?.slug);
 const drafts = decks.filter((d) => d.draft);
-const featured = published[0];
-const rest = published.slice(1);
 const kindGroups = groupByKind(rest);
-const topicEntries = collectTopics([...rest, ...drafts]);
-const total = published.length + drafts.length;
+const topicEntries = collectTopics(decks);
+const total = decks.length;
 
 // Cross-link to knowledge-docs-site. Only rendered when the env var is
 // set so local dev (which usually doesn't have docs-site running) stays
@@ -87,6 +93,10 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
             </div>
           )}
 
+          {/* Drafts are inlined into their respective Talks / Reading
+              groups — each row carries `data-draft="true"`. The draft
+              chip toggles archive-level `.is-draft-mode`, which the
+              CSS uses to swap drafts in and published rows out. */}
           {kindGroups.map((group) => (
             <section class="group" data-kind={group.kind}>
               <h2 class="block__heading">
@@ -100,23 +110,6 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
               </div>
             </section>
           ))}
-
-          {drafts.length > 0 && (
-            <section class="group is-hidden" data-kind="draft">
-              <h2 class="block__heading">
-                <span class="block__rule" aria-hidden="true"></span>
-                <span class="block__label">In progress</span>
-              </h2>
-              <p class="archive__draft-note">
-                작성 중인 슬라이드. 빌드된 결과물이 있어도 메인 목록에는 노출되지 않습니다.
-              </p>
-              <div class="group__list">
-                {drafts.map((deck) => (
-                  <DeckRow deck={deck} showYear />
-                ))}
-              </div>
-            </section>
-          )}
         </section>
       )}
     </>
@@ -341,6 +334,16 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
   .group.is-hidden,
   .group.is-empty { display: none; }
 
+  /* Drafts visibility rule.
+   *   default              : hide .row--draft, show non-draft rows
+   *   .is-draft-mode (on)  : show .row--draft, hide non-draft rows
+   * Drafts are inlined into the same Talks / Reading groups as
+   * published decks; the kind chips and the draft chip then compose
+   * naturally — e.g. "reading + draft" = drafts in the reading group. */
+  :global(.row--draft) { display: none; }
+  .archive.is-draft-mode :global(.row--draft) { display: grid; }
+  .archive.is-draft-mode :global(.row:not(.row--draft)) { display: none; }
+
   @media (max-width: 640px) {
     .masthead__name {
       font-size: 44px;
@@ -390,22 +393,25 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
       '.archive__chip[data-kind="draft"]',
     );
 
+    // applyVisibility composes three filter dimensions:
+    //   - kind chips (talks / reading) toggle group sections via .is-hidden
+    //   - draft chip toggles archive-level .is-draft-mode; the CSS swaps
+    //     draft rows in and published rows out (drafts are inlined into
+    //     the same Talks / Reading sections, so "reading + draft" gives
+    //     drafts that are reading — the intersection the user expects)
+    //   - topic chips already filter at row level via .is-topic-hidden
+    //     and bubble .is-empty up to the parent group
     const applyVisibility = () => {
       const draftsMode = draftChip?.classList.contains('is-active') ?? false;
+      archive.classList.toggle('is-draft-mode', draftsMode);
       archive.querySelectorAll<HTMLElement>('.group').forEach((g) => {
         const k = g.dataset.kind;
         if (!k) return;
-        if (draftsMode) {
-          g.classList.toggle('is-hidden', k !== 'draft');
-        } else if (k === 'draft') {
-          g.classList.add('is-hidden');
-        } else {
-          const c = archive.querySelector<HTMLButtonElement>(
-            `.archive__chip[data-kind="${k}"]`,
-          );
-          const active = c?.classList.contains('is-active') ?? true;
-          g.classList.toggle('is-hidden', !active);
-        }
+        const c = archive.querySelector<HTMLButtonElement>(
+          `.archive__chip[data-kind="${k}"]`,
+        );
+        const active = c?.classList.contains('is-active') ?? true;
+        g.classList.toggle('is-hidden', !active);
       });
     };
 
@@ -413,28 +419,14 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
       .querySelectorAll<HTMLButtonElement>('.archive__chip')
       .forEach((chip) => {
         chip.addEventListener('click', () => {
-          if (chip.classList.contains('archive__chip--topic')) {
-            const active = !chip.classList.contains('is-active');
-            chip.classList.toggle('is-active', active);
-            chip.setAttribute('aria-pressed', active ? 'true' : 'false');
-            applyTopicFilter();
-            return;
-          }
-
-          const kind = chip.dataset.kind;
-          if (!kind) return;
-
           const active = !chip.classList.contains('is-active');
           chip.classList.toggle('is-active', active);
           chip.setAttribute('aria-pressed', active ? 'true' : 'false');
 
-          // Drafts is mutually exclusive with kind chips. Clicking a kind
-          // chip while Drafts mode is on automatically exits Drafts mode.
-          if (kind !== 'draft' && draftChip?.classList.contains('is-active')) {
-            draftChip.classList.remove('is-active');
-            draftChip.setAttribute('aria-pressed', 'false');
+          if (chip.classList.contains('archive__chip--topic')) {
+            applyTopicFilter();
+            return;
           }
-
           applyVisibility();
         });
       });

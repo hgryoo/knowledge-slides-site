@@ -37,17 +37,29 @@ export type LangAssets = {
 };
 
 /** Companion-document link surfaced next to the slide outputs on a deck
- *  card. Most commonly an analysis doc on the sibling knowledge-docs-site
- *  ("Doc" link beside the slides PDF), but can also point at a paper,
- *  external blog post, or a same-repo PDF for essay-only entries.
+ *  card.
  *
- *  `kind` is informational: rendered as a small label before the link
- *  text. Free-form; current convention is `analysis | essay | paper |
- *  reference | original`. */
+ *  Each card document carries TWO orthogonal annotations:
+ *
+ *  - `kind` — the category banner (default `docs`). Override when the
+ *    doc has a more specific identity: `paper`, `spec`, `essay`,
+ *    `reference`. Keep this short — it renders as a chip-label, not a
+ *    sentence.
+ *
+ *  - `format` — what kind of click the user gets. Derived from the URL
+ *    if not set:
+ *      - `link`  external page (URL has no recognised file extension)
+ *      - `pdf`   downloadable PDF
+ *      - `md`    raw markdown
+ *      - `html`  static HTML page (e.g. an Astro/Starlight render)
+ *
+ *  The renderer shows `[kind] label · format` so the reader can decide
+ *  whether they're about to open a tab or grab a file. */
 export type DeckDocument = {
   label: string;
   url: string;
   kind?: string;
+  format?: 'link' | 'pdf' | 'md' | 'html';
 };
 
 export type DeckMetadata = {
@@ -177,6 +189,21 @@ function uploadTimestamp(metaPath: string): number {
   }
 }
 
+/** Infer a DeckDocument.format from the URL when metadata.json doesn't
+ *  set one explicitly. The user-facing intent is "is this a link to a
+ *  page or a file I'll download": URLs with no recognised extension
+ *  (typical for rendered pages, e.g. `/docs/cubrid-locator/`) are
+ *  classified as `link`; URLs ending in `.pdf` / `.md` / `.html` get
+ *  their respective format. Querystrings and fragments are stripped
+ *  first so `foo.pdf?download=1` still resolves to `pdf`. */
+function deriveDocFormat(url: string): 'link' | 'pdf' | 'md' | 'html' {
+  let path = url.split('?')[0].split('#')[0].toLowerCase();
+  if (path.endsWith('.pdf')) return 'pdf';
+  if (path.endsWith('.md')) return 'md';
+  if (path.endsWith('.html') || path.endsWith('.htm')) return 'html';
+  return 'link';
+}
+
 function distExists(file: string): boolean {
   try {
     return fs.statSync(path.join(DIST_ROOT, file)).isFile();
@@ -277,10 +304,16 @@ export function loadDecks(): DeckMetadata[] {
     );
 
     const documents = Array.isArray(raw.documents)
-      ? raw.documents.filter(
-          (d): d is DeckDocument =>
-            typeof d?.label === 'string' && typeof d?.url === 'string',
-        )
+      ? raw.documents
+          .filter(
+            (d): d is DeckDocument =>
+              typeof d?.label === 'string' && typeof d?.url === 'string',
+          )
+          .map((d) => ({
+            ...d,
+            kind: d.kind ?? 'docs',
+            format: d.format ?? deriveDocFormat(d.url),
+          }))
       : [];
 
     // Skip a deck only if it has neither built slides nor companion

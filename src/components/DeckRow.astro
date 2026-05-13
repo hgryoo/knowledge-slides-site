@@ -16,8 +16,9 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
 ---
 
 <article
-  class={`row${deck.available ? '' : ' row--missing'}${showYear ? ' row--with-year' : ''}`}
+  class={`row${deck.available ? '' : ' row--missing'}${showYear ? ' row--with-year' : ''}${deck.draft ? ' row--draft' : ''}`}
   data-topics={deck.topics.join(' ')}
+  data-draft={deck.draft ? 'true' : 'false'}
 >
   <div class="row__month">{dateLabel}</div>
 
@@ -37,6 +38,7 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
         <span>{deck.title}</span>
       )}
       {!deck.available && <span class="row__pending">(unbuilt)</span>}
+      {deck.draft && <span class="row__draft-chip">draft</span>}
     </h3>
 
     {deck.subtitle && <p class="row__subtitle">{deck.subtitle}</p>}
@@ -77,10 +79,11 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
         {deck.documents.map((doc, i) => (
           <span class="row__doc">
             {i > 0 && <span class="row__sep">·</span>}
-            {doc.kind && <span class="row__doc-kind">{doc.kind}</span>}
+            <span class="row__doc-kind">{doc.kind ?? 'docs'}</span>
             <a href={doc.url} target={doc.url.startsWith('http') ? '_blank' : undefined} rel={doc.url.startsWith('http') ? 'noopener' : undefined}>
               {doc.label}
             </a>
+            <span class="row__doc-format">· {doc.format ?? 'link'}</span>
           </span>
         ))}
       </div>
@@ -183,6 +186,23 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
     margin-left: 8px;
     vertical-align: middle;
   }
+
+  .row__draft-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: rgba(168, 51, 42, 0.10);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Draft visibility is controlled globally from index.astro's style
+     block via `.archive.is-draft-mode` — drafts are hidden by default
+     and swap in for published rows when the user toggles the Drafts
+     chip. See index.astro for the actual display rules. */
 
   .row__subtitle {
     font-family: var(--font-serif);
@@ -289,6 +309,13 @@ const dateLabel = showYear && year ? (month ? `${month} ${year}` : year) : month
     background: rgba(46, 84, 158, 0.08);
     padding: 1px 6px;
     border-radius: 3px;
+  }
+
+  .row__doc-format {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted-soft);
+    letter-spacing: 0.02em;
   }
 
   .row__doc a {
