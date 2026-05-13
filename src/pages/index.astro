@@ -335,13 +335,14 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
   .group.is-empty { display: none; }
 
   /* Drafts visibility rule.
-   *   default              : hide .row--draft, show non-draft rows
-   *   .is-draft-mode (on)  : show .row--draft, hide non-draft rows
+   *   default              : drafts and published BOTH visible; drafts
+   *                          carry a `[draft]` chip-marker so the
+   *                          reader can tell them apart at a glance
+   *   .is-draft-mode (on)  : hide non-draft rows (drafts-only filter)
+   *
    * Drafts are inlined into the same Talks / Reading groups as
-   * published decks; the kind chips and the draft chip then compose
+   * published decks; the kind chip and the draft chip then compose
    * naturally — e.g. "reading + draft" = drafts in the reading group. */
-  :global(.row--draft) { display: none; }
-  .archive.is-draft-mode :global(.row--draft) { display: grid; }
   .archive.is-draft-mode :global(.row:not(.row--draft)) { display: none; }
 
   @media (max-width: 640px) {
