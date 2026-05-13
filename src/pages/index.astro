@@ -55,29 +55,27 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
 
       {(rest.length > 0 || drafts.length > 0) && (
         <section class="archive">
-          {(kindGroups.length > 1 || drafts.length > 0) && (
-            <div class="archive__chips" role="group" aria-label="Filter">
-              {kindGroups.map((group) => (
+          <div class="archive__chips" role="group" aria-label="Filter">
+            {kindGroups.map((group) => (
+              <button
+                type="button"
+                class="archive__chip is-active"
+                data-kind={group.kind}
+                aria-pressed="true"
+              >{group.label}</button>
+            ))}
+            {drafts.length > 0 && (
+              <>
+                <span class="archive__chip-sep" aria-hidden="true"></span>
                 <button
                   type="button"
-                  class="archive__chip is-active"
-                  data-kind={group.kind}
-                  aria-pressed="true"
-                >{group.label}</button>
-              ))}
-              {drafts.length > 0 && (
-                <>
-                  <span class="archive__chip-sep" aria-hidden="true"></span>
-                  <button
-                    type="button"
-                    class="archive__chip archive__chip--draft"
-                    data-kind="draft"
-                    aria-pressed="false"
-                  >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
-                </>
-              )}
-            </div>
-          )}
+                  class="archive__chip archive__chip--draft"
+                  data-kind="draft"
+                  aria-pressed="false"
+                >Drafts<span class="archive__chip-count">{drafts.length}</span></button>
+              </>
+            )}
+          </div>
 
           {kindGroups.map((group) => (
             <section class="group" data-kind={group.kind}>
