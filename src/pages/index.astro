@@ -334,7 +334,10 @@ const docsSiteUrl = process.env.DOCS_SITE_URL ?? null;
     color: var(--paper);
   }
 
-  .row.is-topic-hidden { display: none; }
+  /* .row is declared in DeckRow.astro, which Astro scopes under a
+   * different cid hash than this file. Use :global so the JS-toggled
+   * class actually hides the element. */
+  :global(.row.is-topic-hidden) { display: none; }
   .group.is-hidden,
   .group.is-empty { display: none; }
 
